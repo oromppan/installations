@@ -1,0 +1,98 @@
+/*
+ * Web Client Google Finance sketch. Example code from the Arduino Cookbook, modified by Olli Romppanen at Programming for artists course at Aalto 2013.
+ * http://www.laakeriseppele.com
+ * get the stock value for Talvivaara mining company and write it to the analog pins according to stock value change.
+ */
+
+#include <SPI.h>      // needed for Arduino versions later than 0018
+#include <Ethernet.h>
+
+byte mac[] = { 
+  0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+char serverName[] = "www.google.com";
+
+EthernetClient client;
+float value;
+float previousValue;
+int state; 
+int blower = 7;
+int mixer = 8;
+int counter = 0;
+
+void setup()
+{
+  pinMode(blower, OUTPUT);
+  pinMode(mixer, OUTPUT);
+  Serial.begin(9600);
+  if(Ethernet.begin(mac) == 0) { // start ethernet using mac & IP address
+    Serial.println("Failed to configure Ethernet using DHCP");  
+    while(true)   // no point in carrying on, so stay in endless loop:
+      ;
+  }
+  delay(1000); // give the Ethernet shield a second to initialize
+}
+
+void loop()
+{
+  Serial.print("Connecting...");
+  if (client.connect(serverName, 80)>0) {
+    client.println("GET //finance?q=talv HTTP/1.0");
+    client.println("User-Agent: Arduino 1.0");
+    client.println();
+  }
+  else
+  {
+    Serial.println("connection failed");
+  }
+  if (client.connected()) {
+    if(client.find("<span class=\"pr\">"))
+    {
+      client.find(">");  // seek past the next '>'
+      value = client.parseFloat();
+      Serial.print("Talvivaaran osake kustantaa ");
+      Serial.println(value);  // value is printed
+    }
+    else
+      Serial.print("Could not find field");
+  }
+  else {
+    Serial.println("Disconnected");
+  }
+  if (value < previousValue) {
+    state = 0;
+  }
+  if (value == previousValue) {
+    state = 1;
+  }
+
+  if (value > previousValue) {
+    state = 2;
+  }
+
+  Serial.println (state);
+
+  if (counter != 0) {
+
+    if (state == 0) {
+      digitalWrite(mixer, HIGH);
+    }
+    if (state == 1) {
+      digitalWrite(mixer, LOW);
+      digitalWrite(blower, LOW);
+    }
+    if (state == 2) {
+      digitalWrite(blower, HIGH);
+    }
+  }
+
+
+  client.stop();
+  client.flush();
+  previousValue = value;
+  Serial.println (value);
+  Serial.println (previousValue);
+  delay(9000); // X seconds between each connect attempt
+  counter++;
+}
+
+
