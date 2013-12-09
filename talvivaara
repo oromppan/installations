@@ -4,12 +4,15 @@
  * get the stock value for Talvivaara mining company and write it to the analog pins according to stock value change.
  */
 
+
 #include <SPI.h>      // needed for Arduino versions later than 0018
 #include <Ethernet.h>
+
 
 byte mac[] = { 
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 char serverName[] = "www.google.com";
+
 
 EthernetClient client;
 float value;
@@ -18,6 +21,7 @@ int state;
 int blower = 7;
 int mixer = 8;
 int counter = 0;
+
 
 void setup()
 {
@@ -31,6 +35,7 @@ void setup()
   }
   delay(1000); // give the Ethernet shield a second to initialize
 }
+
 
 void loop()
 {
@@ -65,25 +70,52 @@ void loop()
     state = 1;
   }
 
+
   if (value > previousValue) {
     state = 2;
   }
 
+
   Serial.println (state);
 
-  if (counter != 0) {
 
-    if (state == 0) {
-      digitalWrite(mixer, HIGH);
-    }
-    if (state == 1) {
-      digitalWrite(mixer, LOW);
-      digitalWrite(blower, LOW);
-    }
-    if (state == 2) {
-      digitalWrite(blower, HIGH);
-    }
+
+
+
+  if (state == 0 && counter == 0) {
+    digitalWrite(mixer, HIGH);
+    delay(10);
+    digitalWrite(mixer, LOW);
+    digitalWrite(blower, LOW);
+    counter++;
   }
+
+
+  if (state == 1 && counter == 1) {
+    digitalWrite(mixer, HIGH);
+    delay(10);
+    digitalWrite(mixer, LOW);
+    digitalWrite(blower, LOW);
+    counter = 0;
+  }
+  else if(state == 1 && counter == 0) {
+    digitalWrite(blower, LOW);
+  }
+
+
+
+  if (state == 2 && counter == 0) {
+    digitalWrite(blower, HIGH);
+  }
+  else if(state == 2 && counter == 1) {
+    digitalWrite(mixer, HIGH);
+    delay(10);
+    digitalWrite(mixer, LOW);
+    digitalWrite(blower, HIGH);
+    counter = 0;
+  }
+
+
 
 
   client.stop();
@@ -92,7 +124,5 @@ void loop()
   Serial.println (value);
   Serial.println (previousValue);
   delay(9000); // X seconds between each connect attempt
-  counter++;
+
 }
-
-
